@@ -1,8 +1,11 @@
-QT       += core gui sql
+QT       += core gui sql network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += c++11
+CONFIG += c++17
+
+INCLUDEPATH += $$PWD/../../CommonLib/CommonLib
+LIBS += -L$$PWD/../../CommonLib/CommonLib/build -lCommonLib
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -28,6 +31,7 @@ SOURCES += \
     src/dao/operationlogdao.cpp \
     src/service/login.cpp \
     src/ui/mainwindow.cpp \
+    src/network/serverservice.cpp \
     widget.cpp
 
 HEADERS += \
@@ -49,6 +53,7 @@ HEADERS += \
     src/dao/operationlogdao.h \
     src/service/login.h \
     src/ui/mainwindow.h \
+    src/network/serverservice.h \
     widget.h
 
 FORMS += \
