@@ -13,6 +13,8 @@ ServerService::ServerService(QObject *parent)
 {
     connect(m_tcpServer, &TcpServer::messageReceived,
             this, &ServerService::onMessageReceived);
+    connect(m_tcpServer, &TcpServer::clientDisconnected,
+            this, &ServerService::onClientDisconnected);
 }
 
 ServerService::~ServerService()
@@ -33,6 +35,19 @@ bool ServerService::start(quint16 port)
 void ServerService::stop()
 {
     m_tcpServer->stopListening();
+}
+
+int ServerService::getUserId(QTcpSocket *client) const
+{
+    return m_socketToUserId.value(client, -1);
+}
+
+void ServerService::onClientDisconnected(QTcpSocket *client)
+{
+    if (m_socketToUserId.contains(client)) {
+        qDebug() << "用户断开连接 userId:" << m_socketToUserId.value(client);
+        m_socketToUserId.remove(client);
+    }
 }
 
 void ServerService::onMessageReceived(QTcpSocket *client, const Message &msg)
@@ -92,11 +107,12 @@ void ServerService::handleLogin(QTcpSocket *client, const Message &msg)
         return;
     }
 
+    m_socketToUserId[client] = user.id();
     Message resp = Response::loginSuccess(msg.requestId(), user.id(),
                                           user.phone(), user.nickname(),
                                           user.walletBalance());
     m_tcpServer->sendToClient(client, resp);
-    qDebug() << "登录成功 用户:" << user.nickname();
+    qDebug() << "登录成功 用户:" << user.nickname() << " userId:" << user.id();
 }
 
 void ServerService::handleRegister(QTcpSocket *client, const Message &msg)
