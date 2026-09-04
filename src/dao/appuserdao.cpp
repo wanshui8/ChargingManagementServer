@@ -55,3 +55,16 @@ bool AppUserDao::updateStatus(int id, int status)
     query.bindValue(":id", id);
     return query.exec();
 }
+
+int AppUserDao::insert(const QString &phone, const QString &nickname, const QString &passwordHash)
+{
+    QSqlQuery query(DBManager::instance().getDatabase());
+    query.prepare("INSERT INTO app_user (phone, nickname, password_hash) "
+                  "VALUES (:phone, :nickname, :password_hash)");
+    query.bindValue(":phone", phone);
+    query.bindValue(":nickname", nickname);
+    query.bindValue(":password_hash", passwordHash);
+    if (!query.exec())
+        return -1;
+    return query.lastInsertId().toInt();
+}

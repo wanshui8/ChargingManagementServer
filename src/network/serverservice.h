@@ -21,6 +21,7 @@ private slots:
 
 private:
     void handleLogin(QTcpSocket *client, const Message &msg);
+    void handleRegister(QTcpSocket *client, const Message &msg);
 
     TcpServer *m_tcpServer;
 };

@@ -1,5 +1,6 @@
 #include "serverservice.h"
 #include "src/dao/appuserdao.h"
+#include "src/service/passwordhasher.h"
 #include "protocol/Request.h"
 #include "protocol/Response.h"
 #include "protocol/ProtocolTypes.h"
@@ -43,6 +44,9 @@ void ServerService::onMessageReceived(QTcpSocket *client, const Message &msg)
     case Protocol::OpCode::Login:
         handleLogin(client, msg);
         break;
+    case Protocol::OpCode::Register:
+        handleRegister(client, msg);
+        break;
     default:
     {
         Message resp = Response::error(msg.requestId(), msg.opCode(),
@@ -72,7 +76,7 @@ void ServerService::handleLogin(QTcpSocket *client, const Message &msg)
     }
 
     const AppUser &user = userOpt.value();
-    if (user.passwordHash() != password) {
+    if (!PasswordHasher::verify(password, user.passwordHash())) {
         Message resp = Response::error(msg.requestId(), Protocol::OpCode::Login,
                                        Protocol::StatusCode::Unauthorized,
                                        "密码错误");
@@ -93,4 +97,54 @@ void ServerService::handleLogin(QTcpSocket *client, const Message &msg)
                                           user.walletBalance());
     m_tcpServer->sendToClient(client, resp);
     qDebug() << "登录成功 用户:" << user.nickname();
+}
+
+void ServerService::handleRegister(QTcpSocket *client, const Message &msg)
+{
+    QJsonObject payload = msg.payload();
+    QString username = payload["username"].toString();
+    QString phone = payload["phone"].toString();
+    QString password = payload["password"].toString();
+    QString confirmPassword = payload["confirmPassword"].toString();
+
+    qDebug() << "注册请求 手机号:" << phone << " 用户名:" << username;
+
+    if (phone.length() != 11) {
+        Message resp = Response::error(msg.requestId(), Protocol::OpCode::Register,
+                                       Protocol::StatusCode::BadRequest,
+                                       "手机号必须为11位");
+        m_tcpServer->sendToClient(client, resp);
+        return;
+    }
+
+    if (password != confirmPassword) {
+        Message resp = Response::error(msg.requestId(), Protocol::OpCode::Register,
+                                       Protocol::StatusCode::BadRequest,
+                                       "两次密码输入不一致");
+        m_tcpServer->sendToClient(client, resp);
+        return;
+    }
+
+    auto existingUser = AppUserDao::findByPhone(phone);
+    if (existingUser.has_value()) {
+        Message resp = Response::error(msg.requestId(), Protocol::OpCode::Register,
+                                       Protocol::StatusCode::BadRequest,
+                                       "该手机号已注册");
+        m_tcpServer->sendToClient(client, resp);
+        return;
+    }
+
+    QString hashedPassword = PasswordHasher::hash(password);
+    int userId = AppUserDao::insert(phone, username, hashedPassword);
+    if (userId < 0) {
+        Message resp = Response::error(msg.requestId(), Protocol::OpCode::Register,
+                                       Protocol::StatusCode::ServerError,
+                                       "注册失败，数据库错误");
+        m_tcpServer->sendToClient(client, resp);
+        return;
+    }
+
+    Message resp = Response::registerSuccess(msg.requestId(), userId);
+    m_tcpServer->sendToClient(client, resp);
+    qDebug() << "注册成功 userId:" << userId;
 }

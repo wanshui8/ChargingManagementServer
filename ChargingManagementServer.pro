@@ -30,6 +30,7 @@ SOURCES += \
     src/dao/walletrechargedao.cpp \
     src/dao/operationlogdao.cpp \
     src/service/login.cpp \
+    src/service/passwordhasher.cpp \
     src/ui/mainwindow.cpp \
     src/network/serverservice.cpp \
     widget.cpp
@@ -52,6 +53,7 @@ HEADERS += \
     src/dao/walletrechargedao.h \
     src/dao/operationlogdao.h \
     src/service/login.h \
+    src/service/passwordhasher.h \
     src/ui/mainwindow.h \
     src/network/serverservice.h \
     widget.h

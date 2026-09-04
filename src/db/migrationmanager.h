@@ -10,6 +10,7 @@ public:
 
 private:
     static bool migrateToV1(QSqlDatabase& db);
+    static bool migrateToV2(QSqlDatabase& db);
 };
 
 #endif // MIGRATIONMANAGER_H
